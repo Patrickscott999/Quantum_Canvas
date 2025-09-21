@@ -1,8 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 export const handler: Handler = async (event, context) => {
   // Handle CORS
   const headers = {
@@ -56,17 +54,35 @@ export const handler: Handler = async (event, context) => {
     try {
       console.log('Generating image with Gemini 2.5 Flash Image Preview...');
 
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
       const imageModel = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash-image-preview'
       });
 
-      const result = await imageModel.generateContent([prompt]);
+      // Use the correct format for image generation
+      const imagePrompt = `Generate an image: ${prompt}`;
+
+      const result = await imageModel.generateContent({
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: imagePrompt
+          }]
+        }]
+      });
+
       const response = result.response;
+      console.log('Response received from Gemini:', JSON.stringify({
+        candidates: response.candidates?.length,
+        parts: response.candidates?.[0]?.content?.parts?.length
+      }));
 
       // Check if we have image data in the response
       if (response.candidates && response.candidates[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
+          console.log('Part type:', part.inlineData ? 'inlineData' : 'text');
+
+          if (part.inlineData) {
             const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
 
             console.log('Image generated successfully with Gemini 2.5 Flash Image Preview');
@@ -84,54 +100,36 @@ export const handler: Handler = async (event, context) => {
         }
       }
 
-      // If no image was found in response, log the response for debugging
-      console.log('No image found in response:', JSON.stringify(response, null, 2));
+      // If we get here, the model responded with text instead of an image
+      const textResponse = response.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log('Model responded with text instead of image:', textResponse);
 
       return {
-        statusCode: 500,
+        statusCode: 400,
         headers,
         body: JSON.stringify({
           success: false,
-          error: 'No image was generated. The model may not have access to image generation.',
+          error: 'Your API key does not have access to image generation with Gemini 2.5 Flash Image Preview.',
           prompt,
-          details: 'Response received but no image data found'
+          note: 'The model responded with text instead of generating an image. You may need to request access to image generation capabilities from Google AI.',
+          modelResponse: textResponse
         }),
       };
 
     } catch (error: any) {
       console.error('Gemini image generation failed:', error);
 
-      // If the model isn't available, try generating a description instead
-      try {
-        console.log('Falling back to text description...');
-        const textModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const enhancedPrompt = `Create an extremely detailed, vivid description of an image based on this prompt: "${prompt}". Include visual composition, colors, lighting, textures, style, and mood.`;
-        const textResult = await textModel.generateContent(enhancedPrompt);
-        const description = textResult.response.text();
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: 'Image generation model not available. Generated description instead.',
-            description,
-            prompt,
-            note: 'Your API key may not have access to Gemini 2.5 Flash Image Preview. Contact Google AI to enable image generation.'
-          }),
-        };
-      } catch (fallbackError) {
-        return {
-          statusCode: 500,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: 'AI service temporarily unavailable. Please try again.',
-            details: error.message,
-            prompt
-          }),
-        };
-      }
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to generate image with Gemini nano banana model.',
+          details: error.message,
+          prompt,
+          note: 'Ensure your API key has access to Gemini 2.5 Flash Image Preview model.'
+        }),
+      };
     }
 
   } catch (error: any) {
