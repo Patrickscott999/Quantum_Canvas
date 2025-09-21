@@ -250,10 +250,18 @@ class ImageStudio {
                 });
             } else {
                 let errorMessage = data.error || 'Failed to generate image';
-                if (data.error && data.error.includes('HF_TOKEN')) {
-                    errorMessage += '\n\nTo enable AI image generation, add your Hugging Face token to Netlify environment variables.';
+                if (data.description) {
+                    // Show the generated description even if image generation failed
+                    this.showResult(null, prompt, data.note || 'Image generation not available, showing description instead');
+                    const outputSection = document.getElementById('image-output');
+                    const descriptionEl = document.createElement('div');
+                    descriptionEl.className = 'description-fallback';
+                    descriptionEl.style.cssText = 'padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; margin-top: 10px; font-style: italic;';
+                    descriptionEl.textContent = data.description;
+                    outputSection.appendChild(descriptionEl);
+                } else {
+                    this.showError(errorMessage);
                 }
-                this.showError(errorMessage);
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
