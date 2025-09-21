@@ -48,15 +48,21 @@ body {
 }
 
 .app-container {
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
     display: flex;
     flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
+    position: relative;
     z-index: 1;
-    overflow: hidden;
+}
+
+/* Mobile-specific container adjustments */
+@media (max-width: 768px) {
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
 }
 
 /* Header */
@@ -265,6 +271,15 @@ body {
     display: flex;
     height: calc(100vh - 80px);
     overflow: hidden;
+}
+
+/* Allow scrolling on mobile */
+@media (max-width: 768px) {
+    .main-interface {
+        height: auto;
+        min-height: calc(100vh - 80px);
+        overflow: visible;
+    }
 }
 
 /* Left Panel */
@@ -1114,11 +1129,11 @@ body {
     .output-area {
         padding: 1rem;
         overflow-y: auto;
+        flex: 1;
     }
 
     .image-output-section {
         min-height: 250px;
-        max-height: 70vh;
         display: flex;
         flex-direction: column;
     }
@@ -1126,7 +1141,7 @@ body {
     .generated-image {
         width: 100%;
         height: auto;
-        max-height: 60vh;
+        max-height: none; /* Remove max-height restriction */
         object-fit: contain;
         border-radius: var(--border-radius);
     }
@@ -1150,8 +1165,8 @@ body {
         margin-top: 1rem !important;
         padding: 1.25rem !important;
         font-size: 0.9rem !important;
-        max-height: 250px;
-        overflow-y: auto;
+        max-height: none; /* Allow full description visibility */
+        overflow-y: visible;
     }
     
     .panel-content {
@@ -1281,21 +1296,22 @@ body {
     .output-area {
         padding: 0.5rem;
         overflow-y: auto;
+        flex: 1;
+        height: auto;
     }
 
     .image-output-section {
-        min-height: 300px;
-        max-height: 60vh;
-        overflow: hidden;
+        min-height: 200px;
         display: flex;
         flex-direction: column;
+        overflow: visible;
     }
 
     .generated-image {
         width: 100%;
         max-width: 100%;
         height: auto;
-        max-height: 50vh;
+        max-height: none; /* Remove height restriction */
         object-fit: contain;
         border-radius: var(--border-radius);
         background: rgba(0, 0, 0, 0.2);
@@ -1324,8 +1340,8 @@ body {
         padding: 1rem !important;
         font-size: 0.875rem !important;
         line-height: 1.4 !important;
-        max-height: 200px;
-        overflow-y: auto;
+        max-height: none; /* Allow full description */
+        overflow-y: visible;
     }
 
     /* Gallery adjustments for mobile */
@@ -1371,12 +1387,16 @@ body {
 
     /* Ensure images display properly in very small viewports */
     .main-interface {
-        height: calc(100vh - 60px); /* Adjust for smaller header */
+        height: auto; /* Allow natural height for scrolling */
+        min-height: calc(100vh - 60px);
+        overflow: visible;
     }
 
     .right-panel {
-        height: 40vh;
-        min-height: 300px;
+        height: auto; /* Allow natural height */
+        min-height: 50vh;
+        flex: 1;
+        overflow-y: auto;
     }
 
     /* Improve input area on mobile */
