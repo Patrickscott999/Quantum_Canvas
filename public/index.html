@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Quantum Canvas - AI Image Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.rings.min.js"></script>
+</head>
+<body>
+    <div id="vanta-background"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-text">Quantum Canvas</span>
+            </div>
+            
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="generate">
+                    Generate
+                </button>
+                <button class="mode-tab" data-mode="manipulate">
+                    Manipulate
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Split-Screen Interface -->
+        <main class="main-interface">
+            <!-- Left Panel: Input Controls -->
+            <div class="left-panel">
+                <div class="panel-content">
+                    <!-- Style Presets -->
+                    <div class="style-presets-section">
+                        <h3>Style Presets</h3>
+                        <div class="style-grid" id="style-grid">
+                            <div class="style-card active" data-style="">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <path d="M9 12h6m-3-3v6"/>
+                                    </svg>
+                                </div>
+                                <span>Default</span>
+                            </div>
+                            <div class="style-card" data-style="photorealistic">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="8"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M12 4l1.5 1.5L16 4l-1.5 1.5"/>
+                                        <path d="M12 20l-1.5-1.5L8 20l1.5-1.5"/>
+                                        <path d="M4 12l1.5-1.5L4 8l1.5 1.5"/>
+                                        <path d="M20 12l-1.5 1.5L20 16l-1.5-1.5"/>
+                                    </svg>
+                                </div>
+                                <span>Photo</span>
+                            </div>
+                            <div class="style-card" data-style="anime">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                                        <path d="M12 6l2 4m-4 0l2-4m0 8v4"/>
+                                    </svg>
+                                </div>
+                                <span>Anime</span>
+                            </div>
+                            <div class="style-card" data-style="oil-painting">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18.37 2.63L21.37 5.63C22.16 6.42 22.16 7.68 21.37 8.47L8.47 21.37C7.68 22.16 6.42 22.16 5.63 21.37L2.63 18.37C1.84 17.58 1.84 16.32 2.63 15.53L15.53 2.63C16.32 1.84 17.58 1.84 18.37 2.63Z"/>
+                                        <path d="M8 18l6-6"/>
+                                        <circle cx="11" cy="11" r="2"/>
+                                    </svg>
+                                </div>
+                                <span>Oil Paint</span>
+                            </div>
+                            <div class="style-card" data-style="3d-render">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2z"/>
+                                        <path d="M12 22v-11"/>
+                                        <path d="M20 6.5l-8 4.5"/>
+                                        <path d="M4 6.5l8 4.5"/>
+                                    </svg>
+                                </div>
+                                <span>3D</span>
+                            </div>
+                            <div class="style-card" data-style="cyberpunk">
+                                <div class="style-preview">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="6,3 18,3 21,9 15,21 9,21 3,9"/>
+                                        <path d="M12 8v8"/>
+                                        <path d="M8 12h8"/>
+                                        <circle cx="12" cy="12" r="2"/>
+                                    </svg>
+                                </div>
+                                <span>Cyber</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aspect Ratio -->
+                    <div class="aspect-section">
+                        <h3>Aspect Ratio</h3>
+                        <div class="aspect-grid">
+                            <div class="aspect-card active" data-aspect="1:1">
+                                <div class="aspect-preview square"></div>
+                                <span>Square</span>
+                            </div>
+                            <div class="aspect-card" data-aspect="16:9">
+                                <div class="aspect-preview landscape"></div>
+                                <span>Landscape</span>
+                            </div>
+                            <div class="aspect-card" data-aspect="9:16">
+                                <div class="aspect-preview portrait"></div>
+                                <span>Portrait</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Section (for manipulate mode) -->
+                    <div class="upload-section hidden" id="manipulate-upload">
+                        <h3>Upload Image</h3>
+                        <div class="upload-area" id="upload-area">
+                            <input type="file" id="image-input" accept="image/*" hidden>
+                            <div class="upload-content">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"/>
+                                    <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <span>Upload image to modify</span>
+                            </div>
+                            <img id="preview-image" class="hidden" alt="Preview">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Input Box -->
+                <div class="floating-input">
+                    <div class="input-box">
+                        <textarea 
+                            id="prompt-input" 
+                            placeholder="Describe the image you want to create..."
+                            rows="1"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button class="action-btn" id="enhance-btn" title="Enhance prompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M15 7l3 3-3 3"/>
+                                    <path d="M9 17l-3-3 3-3"/>
+                                    <path d="M21 12H7"/>
+                                    <circle cx="4" cy="12" r="2"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn" id="surprise-btn" title="Surprise me">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                    <path d="M21 3v5h-5"/>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                    <path d="M8 16H3v5"/>
+                                </svg>
+                            </button>
+                            <button class="send-btn" id="send-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M2 12L22 2L18 22L12 18L2 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Output and Gallery -->
+            <div class="right-panel">
+                <!-- Image Output Area -->
+                <div class="output-area">
+                    <div class="image-output-section" id="image-output">
+                        <div class="output-placeholder">
+                            <div class="placeholder-content">
+                                <div class="placeholder-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 8v8"/>
+                                        <path d="M8 12h8"/>
+                                        <path d="M16 8l-4 4-4-4"/>
+                                    </svg>
+                                </div>
+                                <h3>Ready to create</h3>
+                                <p>Choose a style and enter your prompt</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading-section hidden" id="loading-section">
+                        <div class="loading-content">
+                            <div class="loading-spinner"></div>
+                            <p>Creating your image...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gallery Sidebar -->
+                <div class="gallery-sidebar">
+                    <div class="gallery-header">
+                        <h3>Recent</h3>
+                        <button class="clear-gallery-btn" id="clear-gallery">Clear</button>
+                    </div>
+                    <div class="gallery-grid" id="gallery-grid">
+                        <div class="gallery-placeholder">
+                            <p>Generated images will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
