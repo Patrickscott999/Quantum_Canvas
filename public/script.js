@@ -242,26 +242,35 @@ class ImageStudio {
 
             if (data.success) {
                 this.showResult(data.imageUrl, prompt, data.note);
+
+                // If we have a description, show it below the image
+                if (data.description) {
+                    const outputSection = document.getElementById('image-output');
+                    const descriptionEl = document.createElement('div');
+                    descriptionEl.className = 'ai-description';
+                    descriptionEl.style.cssText = `
+                        padding: 20px;
+                        background: rgba(102, 126, 234, 0.1);
+                        border-radius: 8px;
+                        margin-top: 15px;
+                        font-style: italic;
+                        border-left: 4px solid #667eea;
+                        line-height: 1.5;
+                        color: #333;
+                    `;
+                    descriptionEl.innerHTML = `<strong>AI Description:</strong><br>${data.description}`;
+                    outputSection.appendChild(descriptionEl);
+                }
+
                 this.addToGallery({
                     url: data.imageUrl,
                     prompt: prompt,
                     type: 'generated',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    description: data.description
                 });
             } else {
-                let errorMessage = data.error || 'Failed to generate image';
-                if (data.description) {
-                    // Show the generated description even if image generation failed
-                    this.showResult(null, prompt, data.note || 'Image generation not available, showing description instead');
-                    const outputSection = document.getElementById('image-output');
-                    const descriptionEl = document.createElement('div');
-                    descriptionEl.className = 'description-fallback';
-                    descriptionEl.style.cssText = 'padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; margin-top: 10px; font-style: italic;';
-                    descriptionEl.textContent = data.description;
-                    outputSection.appendChild(descriptionEl);
-                } else {
-                    this.showError(errorMessage);
-                }
+                this.showError(data.error || 'Failed to generate image');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
@@ -328,10 +337,14 @@ class ImageStudio {
     showResult(imageUrl, prompt, note) {
         const outputSection = document.getElementById('image-output');
         const loadingSection = document.getElementById('loading-section');
-        
+
         loadingSection.classList.add('hidden');
         outputSection.classList.remove('hidden');
-        
+
+        // Clear any previous descriptions
+        const existingDescriptions = outputSection.querySelectorAll('.ai-description, .description-fallback');
+        existingDescriptions.forEach(el => el.remove());
+
         outputSection.innerHTML = `
             <img src="${imageUrl}" alt="${prompt}" class="generated-image">
             <div class="image-actions">
