@@ -46,15 +46,12 @@ export const handler: Handler = async (event, context) => {
 
     console.log('Generating image for prompt:', prompt);
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
     // Generate real images using Gemini 2.5 Flash Image Preview (nano banana)
     try {
       console.log('Generating image with Gemini 2.5 Flash Image Preview...');
 
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
       const imageModel = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash-image-preview'
       });
