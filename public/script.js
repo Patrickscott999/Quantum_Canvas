@@ -231,45 +231,28 @@ class ImageStudio {
         this.setLoading(button, true);
         this.showLoading();
 
-        // Demo mode - simulate image generation
         try {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Create a demo placeholder image
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-
-            // Create gradient background
-            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(1, '#764ba2');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 512, 512);
-
-            // Add text
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('DEMO MODE', 256, 200);
-            ctx.font = '16px Arial';
-            ctx.fillText('Backend not connected', 256, 230);
-            ctx.fillText(`"${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`, 256, 280);
-
-            const imageUrl = canvas.toDataURL('image/png');
-
-            this.showResult(imageUrl, prompt, 'Demo image - connect your backend for real AI generation');
-            this.addToGallery({
-                url: imageUrl,
-                prompt: prompt,
-                type: 'generated',
-                timestamp: new Date().toISOString()
+            const response = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
             });
 
+            const data = await response.json();
+
+            if (data.success) {
+                this.showResult(data.imageUrl, prompt, data.note);
+                this.addToGallery({
+                    url: data.imageUrl,
+                    prompt: prompt,
+                    type: 'generated',
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                this.showError(data.error || 'Failed to generate image');
+            }
         } catch (error) {
-            this.showError('Demo error occurred');
+            this.showError('Network error. Please try again.');
             console.error('Error:', error);
         } finally {
             this.setLoading(button, false);
@@ -281,60 +264,31 @@ class ImageStudio {
         this.setLoading(button, true);
         this.showLoading();
 
-        // Demo mode - simulate image manipulation
+        const formData = new FormData();
+        formData.append('image', this.uploadedFile);
+        formData.append('prompt', prompt);
+
         try {
-            if (!this.uploadedFile) {
-                this.showError('Please upload an image first');
-                return;
+            const response = await fetch('/api/manipulate-image', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showResult(data.imageUrl, prompt, data.note);
+                this.addToGallery({
+                    url: data.imageUrl,
+                    prompt: prompt,
+                    type: 'manipulated',
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                this.showError(data.error || 'Failed to manipulate image');
             }
-
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Create a demo placeholder showing the original image with overlay
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-
-            // Load and draw the uploaded image
-            const img = new Image();
-            await new Promise((resolve) => {
-                img.onload = resolve;
-                img.src = URL.createObjectURL(this.uploadedFile);
-            });
-
-            // Draw original image
-            ctx.drawImage(img, 0, 0, 512, 512);
-
-            // Add semi-transparent overlay
-            ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
-            ctx.fillRect(0, 0, 512, 512);
-
-            // Add demo text
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            ctx.font = 'bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.strokeText('DEMO MODE', 256, 200);
-            ctx.fillText('DEMO MODE', 256, 200);
-            ctx.font = '14px Arial';
-            ctx.strokeText('Image manipulation demo', 256, 230);
-            ctx.fillText('Image manipulation demo', 256, 230);
-
-            const imageUrl = canvas.toDataURL('image/png');
-
-            this.showResult(imageUrl, prompt, 'Demo manipulation - connect your backend for real AI editing');
-            this.addToGallery({
-                url: imageUrl,
-                prompt: prompt,
-                type: 'manipulated',
-                timestamp: new Date().toISOString()
-            });
-
         } catch (error) {
-            this.showError('Demo error occurred');
+            this.showError('Network error. Please try again.');
             console.error('Error:', error);
         } finally {
             this.setLoading(button, false);
