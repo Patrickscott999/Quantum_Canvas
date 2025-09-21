@@ -249,7 +249,11 @@ class ImageStudio {
                     timestamp: new Date().toISOString()
                 });
             } else {
-                this.showError(data.error || 'Failed to generate image');
+                let errorMessage = data.error || 'Failed to generate image';
+                if (data.error && data.error.includes('HF_TOKEN')) {
+                    errorMessage += '\n\nTo enable AI image generation, add your Hugging Face token to Netlify environment variables.';
+                }
+                this.showError(errorMessage);
             }
         } catch (error) {
             this.showError('Network error. Please try again.');

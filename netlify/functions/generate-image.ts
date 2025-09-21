@@ -61,8 +61,11 @@ export const handler: Handler = async (event, context) => {
 
     // Try Hugging Face image generation
     let imageUrl = null;
+    let note = '';
+
     try {
       if (process.env.HF_TOKEN) {
+        console.log('Generating image with Hugging Face...');
         const imageBlob = await hf.textToImage({
           model: 'stabilityai/stable-diffusion-xl-base-1.0',
           inputs: description,
@@ -72,18 +75,34 @@ export const handler: Handler = async (event, context) => {
         const arrayBuffer = await imageBlob.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         imageUrl = `data:image/png;base64,${base64}`;
+        note = 'Generated with Stable Diffusion XL';
+        console.log('Image generated successfully with Hugging Face');
+      } else {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'HF_TOKEN is required for AI image generation. Please add your Hugging Face token to environment variables.',
+            description,
+            prompt
+          }),
+        };
       }
     } catch (hfError) {
-      console.warn('Hugging Face generation failed:', hfError);
+      console.error('Hugging Face generation failed:', hfError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'AI image generation failed. Please try again.',
+          details: hfError.message,
+          description,
+          prompt
+        }),
+      };
     }
-
-    // Fallback to placeholder if HF fails
-    if (!imageUrl) {
-      const timestamp = Date.now();
-      imageUrl = `https://picsum.photos/800/600?random=${timestamp}`;
-    }
-
-    console.log('Image generated successfully');
 
     return {
       statusCode: 200,
@@ -93,7 +112,7 @@ export const handler: Handler = async (event, context) => {
         imageUrl,
         description,
         prompt,
-        note: imageUrl.startsWith('data:') ? 'Generated with AI' : 'This is a placeholder image. Add HF_TOKEN for AI generation.'
+        note
       }),
     };
 

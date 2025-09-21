@@ -55,17 +55,14 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    // For Netlify functions, we'll need to handle file uploads differently
-    // This is a simplified version - in production you'd use a proper multipart parser
+    // Image manipulation requires proper multipart parsing for Netlify functions
     return {
-      statusCode: 200,
+      statusCode: 501,
       headers,
       body: JSON.stringify({
-        success: true,
-        imageUrl: `https://picsum.photos/800/600?random=${Date.now()}`,
-        description: 'Image manipulation placeholder',
-        prompt: 'demo',
-        note: 'Image manipulation is currently in demo mode. File upload handling needs multipart parser for Netlify functions.'
+        success: false,
+        error: 'Image manipulation feature is not yet implemented for Netlify functions.',
+        note: 'This feature requires multipart form data parsing which needs additional implementation for serverless functions.'
       }),
     };
 
