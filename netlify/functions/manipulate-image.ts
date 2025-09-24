@@ -14,7 +14,7 @@ function fileToGenerativePart(buffer: Buffer, mimeType: string) {
   };
 }
 
-function parseMultipartData(body: string, contentType: string): Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, buffer: Buffer, mimetype: string }> }> {
+function parseMultipartData(body: string, contentType: string, isBase64Encoded: boolean): Promise<{ fields: Record<string, string>, files: Array<{ fieldname: string, buffer: Buffer, mimetype: string }> }> {
   return new Promise((resolve, reject) => {
     const fields: Record<string, string> = {};
     const files: Array<{ fieldname: string, buffer: Buffer, mimetype: string }> = [];
@@ -55,7 +55,11 @@ function parseMultipartData(body: string, contentType: string): Promise<{ fields
       reject(err);
     });
 
-    busboy.write(Buffer.from(body, 'base64'));
+    if (isBase64Encoded) {
+      busboy.write(Buffer.from(body, 'base64'));
+    } else {
+      busboy.write(body);
+    }
     busboy.end();
   });
 }
@@ -113,7 +117,7 @@ export const handler: Handler = async (event, context) => {
     }
 
     // Parse multipart form data
-    const { fields, files } = await parseMultipartData(body, contentType);
+    const { fields, files } = await parseMultipartData(body, contentType, event.isBase64Encoded || false);
 
     if (files.length === 0) {
       return {

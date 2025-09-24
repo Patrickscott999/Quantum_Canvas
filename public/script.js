@@ -288,6 +288,9 @@ class ImageStudio {
         const formData = new FormData();
         formData.append('image', this.uploadedFile);
         formData.append('prompt', prompt);
+        formData.append('operation', 'ai-enhance');
+        formData.append('quality', '85');
+        formData.append('format', 'jpeg');
 
         try {
             const response = await fetch('/api/manipulate-image', {
@@ -299,6 +302,38 @@ class ImageStudio {
 
             if (data.success) {
                 this.showResult(data.imageUrl, prompt, data.note);
+
+                // Show processing details
+                const outputSection = document.getElementById('image-output');
+                if (data.parameters || data.originalSize || data.processedSize) {
+                    const detailsEl = document.createElement('div');
+                    detailsEl.className = 'processing-details';
+                    detailsEl.style.cssText = `
+                        padding: 15px;
+                        background: rgba(102, 126, 234, 0.1);
+                        border-radius: 8px;
+                        margin-top: 15px;
+                        font-size: 0.9em;
+                        border-left: 4px solid #667eea;
+                    `;
+
+                    let detailsHtml = '<strong>Processing Details:</strong><br>';
+                    if (data.originalSize && data.processedSize) {
+                        const compression = ((data.originalSize - data.processedSize) / data.originalSize * 100).toFixed(1);
+                        detailsHtml += `Original: ${(data.originalSize / 1024).toFixed(1)}KB → Processed: ${(data.processedSize / 1024).toFixed(1)}KB `;
+                        if (compression > 0) {
+                            detailsHtml += `(${compression}% compression)`;
+                        }
+                        detailsHtml += '<br>';
+                    }
+                    if (data.operation) {
+                        detailsHtml += `Operation: ${data.operation}<br>`;
+                    }
+
+                    detailsEl.innerHTML = detailsHtml;
+                    outputSection.appendChild(detailsEl);
+                }
+
                 this.addToGallery({
                     url: data.imageUrl,
                     prompt: prompt,
