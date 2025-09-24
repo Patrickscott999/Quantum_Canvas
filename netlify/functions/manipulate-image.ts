@@ -217,30 +217,169 @@ export const handler: Handler = async (event, context) => {
 
       case 'ai-enhance':
         if (prompt && genAI) {
-          // Use Gemini Vision to analyze and suggest improvements
+          // Use Gemini Vision to analyze and understand the user's request
           const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
           const imagePart = fileToGenerativePart(imageFile.buffer, imageFile.mimetype);
 
-          const result = await model.generateContent([
-            `Analyze this image and suggest specific image processing parameters based on this request: "${prompt}".
-             Respond with a JSON object containing recommended values for: brightness (0.5-2.0), contrast (0.5-2.0), saturation (0.5-2.0),
-             sharpen (0-10), blur (0-10), and any other processing recommendations.`,
-            imagePart
-          ]);
+          const analysisPrompt = `Look at this image and understand what the user wants to do: "${prompt}"
 
-          const response = result.response.text();
+Please analyze the image and provide specific processing instructions in JSON format. Based on the user's request, determine what changes are needed:
+
+For adjustments like "brighter", "more vibrant", "darker", "more contrast", "softer", "sharper":
+- brightness: 0.5-2.0 (1.0 = no change, >1.0 = brighter, <1.0 = darker)
+- saturation: 0.5-2.0 (1.0 = no change, >1.0 = more vibrant, <1.0 = less vibrant)
+- contrast: 0.5-2.0 (1.0 = no change, >1.0 = more contrast, <1.0 = less contrast)
+- sharpen: 0-5 (0 = no sharpening, higher = more sharp)
+- blur: 0-5 (0 = no blur, higher = more blur)
+
+For color changes like "warmer", "cooler", "more red", "blue tint":
+- hue: -180 to 180 (degrees to shift hue)
+- temperature: "warm" or "cool" or "neutral"
+
+For effects like "vintage", "black and white", "sepia":
+- grayscale: true/false
+- sepia: true/false
+- vintage: true/false
+
+For transformations:
+- rotate: degrees to rotate (-360 to 360)
+- flip: true/false (vertical flip)
+- flop: true/false (horizontal flip)
+
+Only include the parameters that are relevant to the user's request. Respond with valid JSON only.`;
+
           try {
-            const aiSuggestions = JSON.parse(response);
-            if (aiSuggestions.brightness) sharpInstance = sharpInstance.modulate({ brightness: aiSuggestions.brightness });
-            if (aiSuggestions.contrast) sharpInstance = sharpInstance.linear(aiSuggestions.contrast, 0);
-            if (aiSuggestions.saturation) sharpInstance = sharpInstance.modulate({ saturation: aiSuggestions.saturation });
-            if (aiSuggestions.sharpen) sharpInstance = sharpInstance.sharpen(aiSuggestions.sharpen);
-            if (aiSuggestions.blur) sharpInstance = sharpInstance.blur(aiSuggestions.blur);
+            const result = await model.generateContent([analysisPrompt, imagePart]);
+            const response = result.response.text();
+            console.log('AI Response:', response);
+
+            // Clean the response to extract JSON
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+              throw new Error('No JSON found in response');
+            }
+
+            const aiSuggestions = JSON.parse(jsonMatch[0]);
+            console.log('AI Suggestions:', aiSuggestions);
+
+            // Apply brightness adjustment
+            if (aiSuggestions.brightness && aiSuggestions.brightness !== 1.0) {
+              sharpInstance = sharpInstance.modulate({ brightness: aiSuggestions.brightness });
+            }
+
+            // Apply saturation adjustment
+            if (aiSuggestions.saturation && aiSuggestions.saturation !== 1.0) {
+              sharpInstance = sharpInstance.modulate({ saturation: aiSuggestions.saturation });
+            }
+
+            // Apply contrast (using gamma for better contrast control)
+            if (aiSuggestions.contrast && aiSuggestions.contrast !== 1.0) {
+              const gamma = aiSuggestions.contrast > 1.0 ? 1.0 / aiSuggestions.contrast : aiSuggestions.contrast;
+              sharpInstance = sharpInstance.gamma(gamma);
+            }
+
+            // Apply hue shift
+            if (aiSuggestions.hue && aiSuggestions.hue !== 0) {
+              sharpInstance = sharpInstance.modulate({ hue: aiSuggestions.hue });
+            }
+
+            // Apply temperature adjustment
+            if (aiSuggestions.temperature) {
+              if (aiSuggestions.temperature === 'warm') {
+                sharpInstance = sharpInstance.modulate({ brightness: 1.05, saturation: 1.1 }).tint({ r: 255, g: 245, b: 235 });
+              } else if (aiSuggestions.temperature === 'cool') {
+                sharpInstance = sharpInstance.modulate({ brightness: 0.95, saturation: 1.1 }).tint({ r: 235, g: 245, b: 255 });
+              }
+            }
+
+            // Apply sharpening
+            if (aiSuggestions.sharpen && aiSuggestions.sharpen > 0) {
+              sharpInstance = sharpInstance.sharpen({ sigma: aiSuggestions.sharpen });
+            }
+
+            // Apply blur
+            if (aiSuggestions.blur && aiSuggestions.blur > 0) {
+              sharpInstance = sharpInstance.blur(aiSuggestions.blur);
+            }
+
+            // Apply grayscale
+            if (aiSuggestions.grayscale) {
+              sharpInstance = sharpInstance.grayscale();
+            }
+
+            // Apply sepia effect
+            if (aiSuggestions.sepia) {
+              sharpInstance = sharpInstance.modulate({ saturation: 0.3, brightness: 1.1 }).tint({ r: 255, g: 245, b: 215 });
+            }
+
+            // Apply vintage effect
+            if (aiSuggestions.vintage) {
+              sharpInstance = sharpInstance
+                .modulate({ brightness: 0.9, saturation: 0.8 })
+                .gamma(1.2)
+                .tint({ r: 255, g: 250, b: 230 });
+            }
+
+            // Apply transformations
+            if (aiSuggestions.rotate && aiSuggestions.rotate !== 0) {
+              sharpInstance = sharpInstance.rotate(aiSuggestions.rotate);
+            }
+            if (aiSuggestions.flip) {
+              sharpInstance = sharpInstance.flip();
+            }
+            if (aiSuggestions.flop) {
+              sharpInstance = sharpInstance.flop();
+            }
+
           } catch (parseError) {
-            console.log('AI suggestions could not be parsed, applying default enhancements');
-            sharpInstance = sharpInstance.modulate({ brightness: 1.1, saturation: 1.1 }).sharpen(1);
+            console.log('AI analysis failed, applying intelligent fallback based on prompt:', parseError);
+
+            // Intelligent fallback based on common keywords in the prompt
+            const lowerPrompt = prompt.toLowerCase();
+
+            if (lowerPrompt.includes('bright') || lowerPrompt.includes('lighter')) {
+              sharpInstance = sharpInstance.modulate({ brightness: 1.3 });
+            } else if (lowerPrompt.includes('dark') || lowerPrompt.includes('dimmer')) {
+              sharpInstance = sharpInstance.modulate({ brightness: 0.7 });
+            }
+
+            if (lowerPrompt.includes('vibrant') || lowerPrompt.includes('colorful') || lowerPrompt.includes('saturated')) {
+              sharpInstance = sharpInstance.modulate({ saturation: 1.4 });
+            } else if (lowerPrompt.includes('muted') || lowerPrompt.includes('desaturated')) {
+              sharpInstance = sharpInstance.modulate({ saturation: 0.6 });
+            }
+
+            if (lowerPrompt.includes('contrast')) {
+              sharpInstance = sharpInstance.gamma(0.8);
+            }
+
+            if (lowerPrompt.includes('sharp')) {
+              sharpInstance = sharpInstance.sharpen(2);
+            } else if (lowerPrompt.includes('soft') || lowerPrompt.includes('blur')) {
+              sharpInstance = sharpInstance.blur(1);
+            }
+
+            if (lowerPrompt.includes('warm')) {
+              sharpInstance = sharpInstance.modulate({ brightness: 1.05 }).tint({ r: 255, g: 245, b: 235 });
+            } else if (lowerPrompt.includes('cool')) {
+              sharpInstance = sharpInstance.modulate({ brightness: 0.95 }).tint({ r: 235, g: 245, b: 255 });
+            }
+
+            if (lowerPrompt.includes('black and white') || lowerPrompt.includes('grayscale')) {
+              sharpInstance = sharpInstance.grayscale();
+            }
+
+            if (lowerPrompt.includes('vintage') || lowerPrompt.includes('retro')) {
+              sharpInstance = sharpInstance.modulate({ brightness: 0.9, saturation: 0.8 }).gamma(1.2).tint({ r: 255, g: 250, b: 230 });
+            }
+
+            if (lowerPrompt.includes('sepia')) {
+              sharpInstance = sharpInstance.modulate({ saturation: 0.3, brightness: 1.1 }).tint({ r: 255, g: 245, b: 215 });
+            }
           }
+        } else {
+          // Default enhancement when no prompt provided
+          sharpInstance = sharpInstance.modulate({ brightness: 1.1, saturation: 1.1 }).sharpen(1);
         }
         break;
     }
