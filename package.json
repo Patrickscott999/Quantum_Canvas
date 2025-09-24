@@ -18,11 +18,14 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^4.8.0",
+    "@types/busboy": "^1.5.4",
+    "busboy": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "mime": "^4.1.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "sharp": "^0.34.4"
   },
   "devDependencies": {
     "@netlify/functions": "^2.8.1",
